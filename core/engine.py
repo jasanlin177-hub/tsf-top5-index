@@ -48,20 +48,18 @@ class IndexEngine:
         if not os.path.exists(INDEX_CONFIG_FILE):
             return None, "⚠️ 請先執行初始化"
 
-        # 【修正點 1】這裡原本少了 encoding='utf-8'
         with open(INDEX_CONFIG_FILE, 'r', encoding='utf-8') as f:
             config = json.load(f)
 
-        # 檢查歷史檔 (簡單快取機制)
+        # 檢查歷史檔 (簡單快取)
         if os.path.exists(HISTORY_FILE):
             df_hist = pd.read_csv(HISTORY_FILE)
-            # 強制轉字串比對，避免型別錯誤
             if str(target_date) in df_hist['date'].astype(str).values:
+                # 若已存在，還是算一次以取得成分股明細 (可優化，但目前保留以確保資料一致)
                 pass 
 
         current_navs = self.scraper.fetch_data(target_date)
         if not current_navs:
-            # 回傳 None 代表當天沒資料 (假日)
             return None, "No Data" 
 
         current_market_cap = 0.0
@@ -89,45 +87,64 @@ class IndexEngine:
 
     def run_batch_update(self, end_date_str, progress_callback=None):
         """ 
-        一鍵自動補齊功能 
+        【智慧補齊功能】自動從「最後一次更新的日期」開始算，而不是從頭算
         """
         if not os.path.exists(INDEX_CONFIG_FILE):
             return "請先初始化"
-            
-        # 【修正點 2】這裡原本少了 encoding='utf-8'，導致錯誤
-        with open(INDEX_CONFIG_FILE, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            start_date_str = config['base_date']
 
-        # 產生日期範圍
+        # 1. 決定「開始日期」 (Start Date Logic)
+        start_date = None
+        
+        # 嘗試從歷史紀錄找最後一天
+        if os.path.exists(HISTORY_FILE):
+            try:
+                df = pd.read_csv(HISTORY_FILE)
+                if not df.empty:
+                    df['date'] = df['date'].astype(str)
+                    last_date_str = df['date'].max() # 找出最大日期
+                    last_dt = datetime.strptime(last_date_str, "%Y%m%d")
+                    # 設定開始日為：最後紀錄的「下一天」
+                    start_date = last_dt + timedelta(days=1)
+            except Exception:
+                pass # 若讀取失敗，就回退到使用基期
+        
+        # 若無歷史紀錄，則從設定檔的基期開始
+        if not start_date:
+            with open(INDEX_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                start_date = datetime.strptime(config['base_date'], "%Y%m%d")
+
+        # 2. 決定「結束日期」
         try:
-            start = datetime.strptime(str(start_date_str), "%Y%m%d")
-            end = datetime.strptime(str(end_date_str), "%Y%m%d")
+            end_date = datetime.strptime(str(end_date_str), "%Y%m%d")
         except ValueError:
              return "❌ 日期格式錯誤，請使用 YYYYMMDD"
 
-        date_list = pd.date_range(start=start, end=end).tolist()
-        
+        # 3. 檢查是否需要更新
+        if start_date > end_date:
+            last_upd = start_date - timedelta(days=1)
+            return f"✅ 資料已是最新！(最後更新日: {last_upd.strftime('%Y%m%d')})"
+
+        # 4. 產生日期列表
+        date_list = pd.date_range(start=start_date, end=end_date).tolist()
         total_days = len(date_list)
         success_count = 0
         
+        # 5. 開始迴圈
         for i, dt in enumerate(date_list):
             d_str = dt.strftime("%Y%m%d")
             
-            # 更新前端進度條
             if progress_callback:
-                progress_callback(i / total_days, f"正在處理: {d_str}")
+                progress_callback(i / total_days, f"正在補齊: {d_str}")
 
-            # 呼叫計算
             idx, _ = self.calculate_index(d_str)
             
             if idx:
                 success_count += 1
             
-            # 避免對公會網站請求過快
-            time.sleep(0.3)
+            time.sleep(0.3) # 禮貌性延遲
 
-        return f"批次處理完成！共掃描 {total_days} 天，成功寫入 {success_count} 筆交易日數據。"
+        return f"批次處理完成！範圍 [{start_date.strftime('%Y%m%d')} -> {end_date.strftime('%Y%m%d')}]，成功寫入 {success_count} 筆。"
 
     def _append_history(self, date, value):
         """ 將計算結果存入 CSV """
@@ -137,14 +154,11 @@ class IndexEngine:
             new_row.to_csv(HISTORY_FILE, index=False)
         else:
             df = pd.read_csv(HISTORY_FILE)
-            df['date'] = df['date'].astype(str) # 確保日期格式一致
-            
-            # 只有當日期不存在時才寫入 (避免重複)
+            df['date'] = df['date'].astype(str)
             if str(date) not in df['date'].values:
                 new_row.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
 
     def get_history(self):
-        """ 讀取歷史資料給前端畫圖 """
         if os.path.exists(HISTORY_FILE):
             return pd.read_csv(HISTORY_FILE).sort_values('date')
         return pd.DataFrame()
