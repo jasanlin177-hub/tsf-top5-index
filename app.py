@@ -179,14 +179,28 @@ _, components_data = engine.calculate_index(today_str)
 
 if isinstance(components_data, list) and len(components_data) > 0:
     cons_data = pd.DataFrame(components_data)
-    cons_data = cons_data.rename(columns={'nav': 'nav_val'})
+    
+    # 【關鍵修復】自動將中文欄位轉為英文，避免 KeyError
+    # 這樣無論 engine 回傳 "基金名稱" 還是 "name" 都能通吃
+    cons_data = cons_data.rename(columns={
+        '基金名稱': 'name', 
+        '最新淨值': 'nav',
+        '權重': 'weight'
+    })
+    
+    # 確保有 'nav' 欄位 (防呆)
+    if 'nav' not in cons_data.columns:
+        cons_data['nav'] = 0.0
+        
     formatted_data = pd.DataFrame({
         "rank": range(1, len(cons_data) + 1),
         "name": cons_data['name'],
-        "nav": cons_data['nav_val'].apply(lambda x: f"{x:.2f}"),
+        # 這裡做格式化，確保顯示兩位小數
+        "nav": cons_data['nav'].apply(lambda x: f"{float(x):.2f}" if pd.notnull(x) else "--"),
         "weight": "20%"
     })
 else:
+    # 預設資料 (當無數據時顯示)
     formatted_data = pd.DataFrame({
         "rank": [1, 2, 3, 4, 5],
         "name": ["統一奔騰基金 (王者)", "安聯台灣科技基金 (權值)", "路博邁台灣5G (新星)", "野村鴻運基金 (戰將)", "野村台灣運籌 (守門)"],
