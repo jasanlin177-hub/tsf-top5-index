@@ -11,12 +11,22 @@ from core.engine import IndexEngine
 # ==========================================
 st.set_page_config(page_title="TSF-Top5 指數", page_icon="🏆", layout="wide")
 
-# 背景設定
+# CSS 優化：強制標題變白
 st.markdown("""
     <style>
+    /* 全局背景色 */
     .stApp { background-color: #0E1117; }
-    h1 { color: #FFFFFF !important; }
+    
+    /* 【關鍵修改】強制所有層級的標題 (H1, H2, H3) 變為亮白色且加粗 */
+    h1, h2, h3 { 
+        color: #FFFFFF !important; 
+        font-weight: 800 !important; /* 特粗體 */
+        text-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2); /* 微微發光效果 */
+    }
+    
+    /* 一般文字維持灰色，避免刺眼 */
     p { color: #AAAAAA; }
+    
     /* 下載按鈕美化 */
     div.stDownloadButton > button {
         background-color: #FFD700;
@@ -119,7 +129,7 @@ with c4: st.plotly_chart(plot_indicator("最大回撤 (MDD)", mdd_val, suffix="%
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- C. 走勢圖 ---
+# --- C. 走勢圖 (標題現在會是亮白色) ---
 st.subheader("📈 指數走勢")
 if not df_hist.empty:
     fig = go.Figure()
@@ -129,7 +139,7 @@ if not df_hist.empty:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- D. 成分股表格 ---
+# --- D. 成分股表格 (標題現在會是亮白色) ---
 st.subheader("🛡️ 最新成分基金權重 (2026 H1)")
 today_str = datetime.now().strftime("%Y%m%d")
 _, components_data = engine.calculate_index(today_str)
@@ -152,7 +162,7 @@ else:
     })
 st.plotly_chart(plot_table(formatted_data), use_container_width=True)
 
-# --- E. 簡報下載區 (Modified: Safe Download) ---
+# --- E. 簡報下載區 (標題現在會是亮白色) ---
 st.markdown("---")
 st.subheader("📄 指數規格與簡報 (Presentation)")
 
@@ -163,7 +173,6 @@ if os.path.exists(pdf_path):
     
     col_pdf1, col_pdf2 = st.columns([1, 4])
     with col_pdf1:
-        # 使用下載按鈕，這不會導致網頁崩潰
         st.download_button(
             label="📥 下載完整簡報 (PDF)",
             data=pdf_data,
@@ -175,7 +184,7 @@ if os.path.exists(pdf_path):
 else:
     st.warning("⚠️ 系統尚未偵測到簡報檔，請確認 `tsf_presentation.pdf` 已上傳至 GitHub。")
 
-# --- F. 管理後台 (Password Protected) ---
+# --- F. 管理後台 ---
 st.markdown("---")
 with st.expander("⚙️ 管理員後台 (需密碼)"):
     password = st.text_input("請輸入管理員密碼", type="password")
