@@ -70,12 +70,17 @@ class IndexEngine:
                 nav = current_navs[name]
                 mkt_val = data["units"] * nav
                 current_market_cap += mkt_val
-                
+
+                base_nav = data["base_nav"]
+                pct = (nav - base_nav) / base_nav * 100
+                sign = "+" if pct >= 0 else ""
+
                 details.append({
-                    "基金名稱": name, 
-                    "最新淨值": nav, 
+                    "基金名稱": name,
+                    "最新淨值": nav,
                     "市值貢獻": mkt_val,
-                    "權重": "20%" 
+                    "本期基金漲幅": f"{sign}{pct:.2f}%",
+                    "權重": "20%"
                 })
             else:
                 return None, f"缺值: {name}"

@@ -74,14 +74,14 @@ def plot_indicator(title, value, suffix="", delta=None, color="#FFD700"):
 # ==========================================
 def plot_table(df):
     fig = go.Figure(data=[go.Table(
-        columnwidth=[0.8, 3.5, 1.5, 1.2],
+        columnwidth=[0.8, 3.5, 1.5, 1.8, 1.2],
         header=dict(
-            values=["<b>排名</b>", "<b>基金名稱</b>", "<b>最新淨值</b>", "<b>權重</b>"],
-            line_color='#8B7355', fill_color='#C5A572', align=['center', 'left', 'right', 'center'], font=dict(color='black', size=18)
+            values=["<b>排名</b>", "<b>基金名稱</b>", "<b>最新淨值</b>", "<b>本期基金漲幅</b>", "<b>權重</b>"],
+            line_color='#8B7355', fill_color='#C5A572', align=['center', 'left', 'right', 'center', 'center'], font=dict(color='black', size=18)
         ),
         cells=dict(
-            values=[df['rank'], df['name'], df['nav'], df['weight']],
-            line_color='#444', fill_color='#Fdfbf7', align=['center', 'left', 'right', 'center'], font=dict(color='black', size=16), height=40
+            values=[df['rank'], df['name'], df['nav'], df['pct'], df['weight']],
+            line_color='#444', fill_color='#Fdfbf7', align=['center', 'left', 'right', 'center', 'center'], font=dict(color='black', size=16), height=40
         ))
     ])
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=350, paper_bgcolor='rgba(0,0,0,0)')
@@ -146,11 +146,12 @@ _, components_data = engine.calculate_index(today_str)
 
 if isinstance(components_data, list) and len(components_data) > 0:
     cons_data = pd.DataFrame(components_data)
-    cons_data = cons_data.rename(columns={'基金名稱': 'name', '最新淨值': 'nav', '權重': 'weight'})
+    cons_data = cons_data.rename(columns={'基金名稱': 'name', '最新淨值': 'nav', '本期基金漲幅': 'pct', '權重': 'weight'})
     formatted_data = pd.DataFrame({
         "rank": range(1, len(cons_data) + 1),
         "name": cons_data['name'],
         "nav": cons_data['nav'].apply(lambda x: f"{float(x):.2f}" if pd.notnull(x) else "--"),
+        "pct": cons_data['pct'],
         "weight": "20%"
     })
 else:
@@ -158,6 +159,7 @@ else:
         "rank": [1, 2, 3, 4, 5],
         "name": ["統一奔騰基金 (王者)", "安聯台灣科技基金 (權值)", "路博邁台灣5G (新星)", "野村鴻運基金 (戰將)", "野村台灣運籌 (守門)"],
         "nav": ["--", "--", "--", "--", "--"],
+        "pct": ["--", "--", "--", "--", "--"],
         "weight": ["20%", "20%", "20%", "20%", "20%"]
     })
 st.plotly_chart(plot_table(formatted_data), use_container_width=True)
