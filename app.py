@@ -204,7 +204,7 @@ with st.expander("⚙️ 管理員後台 (需密碼)"):
         col_adm1, col_adm2 = st.columns(2)
         with col_adm1:
             st.write("#### 1. 重置 (危險)")
-            base_date = st.text_input("輸入基期日期", "20260102")
+            base_date = st.text_input("輸入基期日期", "20251231")
             if st.button("🚀 執行初始化 (清空資料)"):
                 success, msg = engine.initialize_index(base_date)
                 if success: st.success(msg)
