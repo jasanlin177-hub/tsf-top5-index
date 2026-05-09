@@ -144,6 +144,13 @@ st.subheader("🛡️ 最新成分基金權重 (2026 H1)")
 today_str = datetime.now().strftime("%Y%m%d")
 _, components_data = engine.calculate_index(today_str)
 
+# 今日資料未發布時，退回歷史最後一筆有效日期
+if not isinstance(components_data, list):
+    _hist = engine.get_history()
+    if not _hist.empty:
+        last_date = str(int(_hist.sort_values('date').iloc[-1]['date']))
+        _, components_data = engine.calculate_index(last_date)
+
 if isinstance(components_data, list) and len(components_data) > 0:
     cons_data = pd.DataFrame(components_data)
     cons_data = cons_data.rename(columns={'基金名稱': 'name', '最新淨值': 'nav', '本期基金漲幅': 'pct', '權重': 'weight'})
