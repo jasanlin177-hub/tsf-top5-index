@@ -52,10 +52,19 @@ st.markdown(f"""
     gap: 24px;
     margin-bottom: 0;
 }}
-.tsf-header img {{
-    height: 88px;
+/* LOGO 外層容器 — 白底圓角 */
+.tsf-logo-wrap {{
+    background: #FFFFFF;
+    padding: 8px 16px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}}
+.tsf-logo-wrap img {{
+    height: 130px;
     object-fit: contain;
-    filter: drop-shadow(0 0 12px rgba(255,215,0,0.3));
+    display: block;
 }}
 .tsf-header-logo-placeholder {{
     width: 88px;
@@ -405,7 +414,7 @@ except Exception as e:
 # ==========================================
 logo_b64  = get_logo_b64()
 logo_html = (
-    f'<img src="data:image/png;base64,{logo_b64}" />'
+    f'<div class="tsf-logo-wrap"><img src="data:image/png;base64,{logo_b64}" /></div>'
     if logo_b64
     else '<div class="tsf-header-logo-placeholder">🐯</div>'
 )
