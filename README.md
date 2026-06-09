@@ -8,7 +8,7 @@ TSF-Top5 Index 系統架構與維護手冊
 這部分最重要，要解釋「資料是怎麼流動的」。建議放入這張流程圖：
 程式碼片段
 graph LR
-    A[每日排程 18:00] -->|觸發| B(GitHub Actions)
+    A[每日排程 19:00] -->|觸發| B(GitHub Actions)
     B -->|執行腳本| C[run_daily_update.py]
     C -->|爬蟲請求| D[公會網站]
     D -->|回傳淨值| C
@@ -28,7 +28,7 @@ o	tsf_index_config.json：儲存 5 檔成分股的初始權重與基期設定。
 •	run_daily_update.py：機器人專用的啟動腳本，只做計算不畫圖。
 3. 自動化維護 (Automation)
 說明 GitHub Actions 是如何運作的，這對除錯很重要。
-•	執行時間：每日 UTC 10:00 (台灣時間 18:00)。
+•	執行時間：每日 UTC 11:00 (台灣時間 19:00)。
 •	觸發機制：
 1.	定時排程 (cron).
 2.	手動觸發 (Workflow Dispatch)。
