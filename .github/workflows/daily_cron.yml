@@ -2,9 +2,9 @@ name: Daily Index Update (TSF-Top5)
 
 # 設定觸發時機
 on:
-  # 1. 定時執行：每天 UTC 時間 10:00 (台灣時間 18:00，確保淨值已更新)
+  # 1. 定時執行：每天 UTC 時間 11:00 (台灣時間 19:00，確保淨值已更新)
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '0 11 * * *'
   # 2. 手動執行：允許你在 GitHub 網頁上按按鈕測試
   workflow_dispatch:
 
