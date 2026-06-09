@@ -17,6 +17,23 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ==========================================
+# Google Analytics 4 追蹤碼
+# ==========================================
+GA_ID = "G-36YR5QNQ2K"
+st.markdown(f"""
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{GA_ID}', {{
+    page_title: 'TSF-Top5 Index',
+    page_path: '/'
+  }});
+</script>
+""", unsafe_allow_html=True)
+
 # ── 五虎將色系（對應 LOGO 彩虹條紋）──
 FUND_COLORS = [
     "#FF6B35",  # 1 橙 — 統一奔騰
@@ -109,6 +126,18 @@ st.markdown(f"""
     font-size: 1rem;
     font-weight: 700;
 }}
+.tsf-hits {{
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}}
+.tsf-hits img {{
+    height: 22px;
+    border-radius: 4px;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}}
+.tsf-hits img:hover {{ opacity: 1; }}
 
 /* ─── 彩虹分隔線 ─── */
 .rainbow-hr {{
@@ -429,6 +458,10 @@ st.markdown(f"""
     <div class="tsf-header-right">
         <div class="updated-label">最後更新</div>
         <div class="updated-date">{last_updated_date}</div>
+        <div class="tsf-hits">
+            <img src="https://hits.sh/tsf-top5-index-k5yfhkjzsgzmuma2sd8a9g.streamlit.app.svg?label=%E8%A8%AA%E5%AE%A2%E6%95%B8&color=FFD700&labelColor=141827&style=flat-square"
+                 alt="訪客數" title="累計訪客數" />
+        </div>
     </div>
 </div>
 <div class="rainbow-hr"></div>
