@@ -76,7 +76,7 @@ class SitcaScraper:
                 # 1. 取得隱藏欄位 (ViewState)
                 r = self.session.get(
                     SITCA_URL, headers=_HEADERS,
-                    verify=False, timeout=30
+                    verify=False, timeout=60
                 )
                 soup = BeautifulSoup(r.text, "html.parser")
                 payload = {
@@ -98,7 +98,7 @@ class SitcaScraper:
                 # 3. 送出 POST
                 r_post = self.session.post(
                     SITCA_URL, data=payload, headers=_HEADERS,
-                    verify=False, timeout=30
+                    verify=False, timeout=60
                 )
 
                 # 4. 解析表格
