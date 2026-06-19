@@ -26,8 +26,10 @@ jobs:
           python-version: '3.10'
 
       - name: 安裝套件 (Install dependencies)
-        run: |
-          pip install pandas requests beautifulsoup4
+       run: |
+        pip install "curl_cffi>=0.7.0" --upgrade
+        pip install -r requirements.txt
+        python -c "from curl_cffi.requests import Session; print('✅ curl_cffi OK')"
 
       - name: 執行更新腳本 (Run Update)
         run: python run_daily_update.py
