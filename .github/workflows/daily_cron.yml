@@ -3,7 +3,7 @@ name: Daily Index Update (TSF-Top5)
 on:
   schedule:
     - cron: '0 11 * * 1-5'   # 台灣時間 19:00（UTC 11:00），週一至週五
-  workflow_dispatch:           # 允許手動觸發
+  workflow_dispatch:           # 允許手動觸發 
 
 jobs:
   build:
