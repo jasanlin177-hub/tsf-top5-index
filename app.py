@@ -69,6 +69,11 @@ st.markdown(f"""
     gap: 24px;
     margin-bottom: 0;
 }}
+/* 標題文字容器 — 允許收縮，避免文字被擠成直排 */
+.tsf-header-text {{
+    flex: 1 1 auto;
+    min-width: 0;
+}}
 /* LOGO 外層容器 — 白底圓角 */
 .tsf-logo-wrap {{
     background: #FFFFFF;
@@ -138,6 +143,37 @@ st.markdown(f"""
     transition: opacity 0.2s;
 }}
 .tsf-hits img:hover {{ opacity: 1; }}
+
+/* ─── 手機版 RWD（窄螢幕改為置中堆疊）─── */
+@media (max-width: 640px) {{
+    .tsf-header {{
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 14px;
+        padding: 16px 16px 14px;
+    }}
+    .tsf-logo-wrap {{
+        padding: 6px 12px;
+    }}
+    .tsf-logo-wrap img {{
+        height: 88px;       /* 手機版 LOGO 縮小 */
+    }}
+    .tsf-header-text h1 {{
+        font-size: 1.6rem !important;
+    }}
+    .tsf-header-text p {{
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }}
+    .tsf-header-right {{
+        margin-left: 0;     /* 取消推到右側，改置中 */
+        text-align: center;
+    }}
+    .tsf-hits {{
+        justify-content: center;
+    }}
+}}
 
 /* ─── 彩虹分隔線 ─── */
 .rainbow-hr {{
