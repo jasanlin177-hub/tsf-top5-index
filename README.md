@@ -28,7 +28,7 @@ o	tsf_index_config.json：儲存 5 檔成分股的初始權重與基期設定。
 •	run_daily_update.py：機器人專用的啟動腳本，只做計算不畫圖。
 3. 自動化維護 (Automation)
 說明 GitHub Actions 是如何運作的，這對除錯很重要。
-•	執行時間：每日 UTC 11:00 (台灣時間 19:00)。
+•	執行時間：每日 UTC 10:33 (台灣時間 18:33)。
 •	觸發機制：
 1.	定時排程 (cron).
 2.	手動觸發 (Workflow Dispatch)。
