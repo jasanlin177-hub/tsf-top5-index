@@ -1,0 +1,60 @@
+name: Semi-Annual Rebalance (TSF-Top5)
+
+# 每半年自動算換股建議，開一個 PR；人工 Merge 才生效。
+on:
+  schedule:
+    - cron: '0 11 30 6 *'    # 6/30 台灣 19:00（UTC 11:00），公會 17:30 已發布
+    - cron: '0 11 31 12 *'   # 12/31 台灣 19:00
+  workflow_dispatch:          # 手動觸發（測試/補跑）
+    inputs:
+      date:
+        description: '審核日 YYYYMMDD（須為 6/30 或 12/31；留空＝今天）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  rebalance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下載程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安裝套件
+        run: |
+          pip install -r requirements.txt
+          pip install "curl_cffi>=0.7.0" --no-cache-dir
+          python -c "from curl_cffi.requests import Session; print('✅ curl_cffi OK')"
+
+      - name: 算換股建議並寫入 config
+        id: run
+        run: |
+          DATE="${{ github.event.inputs.date }}"
+          if [ -z "$DATE" ]; then DATE=$(date -u +'%Y%m%d'); fi
+          echo "審核日：$DATE"
+          python -m core.rebalance "$DATE" --apply
+          PERIOD=$(python -c "import json;print(json.load(open('data/tsf_index_config.json',encoding='utf-8'))['period'])")
+          echo "period=$PERIOD" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+
+      - name: 開 PR（等人核准 Merge 才生效）
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: rebalance/${{ steps.run.outputs.period }}
+          delete-branch: true
+          title: "🐯 [換股建議] ${{ steps.run.outputs.period }} TSF-Top5 半年再平衡"
+          body-path: data/rebalance_archive/latest_proposal.md
+          labels: rebalance
+          add-paths: |
+            data/tsf_index_config.json
+            data/universe_nav_history.csv
+            data/rebalance_archive/**
+          commit-message: "rebalance: ${{ steps.run.outputs.period }} 半年再平衡（審核日 ${{ steps.run.outputs.date }}）"
