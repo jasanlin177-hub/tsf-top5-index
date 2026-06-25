@@ -1,72 +1,34 @@
-import requests
-from bs4 import BeautifulSoup
-import urllib3
-from .config import SITCA_URL, TARGET_FUNDS # 引用設定
+from .config import TARGET_FUNDS  # 預設 5 檔短名→統編（換股後由 config 覆寫）
+from .universe_scraper import fetch_universe, _normalize_id
 
-# 關閉 SSL 警告
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class SitcaScraper:
-    """ 負責從公會抓取官方淨值 (無狀態，只負責抓) """
-    def __init__(self):
-        self.session = requests.Session()
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": SITCA_URL
-        }
+    """
+    從公會抓官方淨值（無狀態，只負責抓）。
 
-    def fetch_data(self, date_str):
+    日更改用「統編精準比對」：重用 universe_scraper.fetch_universe()
+    取當日全市場母體（已 AA1/TWD 濾、已同統編去重→路博邁自動取 T累積），
+    再依 config 提供的「短名→統編」挑出要追蹤的成分股。
+    比舊版關鍵字比對穩健（關鍵字 "T" 會誤中 "TWD" 導致抓錯級別）。
+    """
+
+    def fetch_data(self, date_str, targets=None):
         """
-        輸入: "20260127"
-        輸出: Dict {'統一奔騰': 120.5, ...} 或 None
+        輸入：date_str "YYYYMMDD"；targets = {短名: 統編}（None 則用 config 預設 5 檔）
+        輸出：Dict {'統一奔騰': 120.5, ...}；查無資料回 None。
         """
-        try:
-            # 1. 取得隱藏欄位 (ViewState)
-            r = self.session.get(SITCA_URL, headers=self.headers, verify=False)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            payload = {tag.get('name'): tag.get('value', '') for tag in soup.find_all('input') if tag.get('name')}
-            
-            # 2. 填入查詢參數
-            payload.update({
-                'ctl00$ContentPlaceHolder1$txtQ_Date': date_str,
-                'ctl00$ContentPlaceHolder1$ddlQ_Comid': '',
-                'ctl00$ContentPlaceHolder1$BtnQuery': '查詢'
-            })
-            
-            # 3. 送出 POST
-            r_post = self.session.post(SITCA_URL, data=payload, headers=self.headers, verify=False)
-            
-            # 4. 解析表格
-            tables = BeautifulSoup(r_post.text, 'html.parser').find_all('table')
-            # 透過特徵尋找正確表格
-            data_table = next((t for t in tables if "基金名稱" in t.text and "淨值" in t.text), None)
-            
-            if not data_table:
-                return None # 查無資料 (可能假日)
+        if targets is None:
+            targets = TARGET_FUNDS
 
-            results = {}
-            for row in data_table.find_all('tr'):
-                text = row.text
-                for name, keywords in TARGET_FUNDS.items():
-                    # 邏輯：必須包含主關鍵字
-                    if keywords[0] in text:
-                        # 過濾次要關鍵字 (如 "T", "累積")
-                        if len(keywords) > 1 and not any(k in text for k in keywords[1:]):
-                            continue
+        universe = fetch_universe(date_str)
+        if universe is None or universe.empty:
+            return None  # 假日或淨值未發布
 
-                        cols = row.find_all('td')
-                        col_texts = [c.text.strip() for c in cols]
-                        
-                        # 智能定位 "TWD" 右邊那一欄
-                        for i, val in enumerate(col_texts):
-                            if val == 'TWD' and i+1 < len(col_texts):
-                                try:
-                                    nav = float(col_texts[i+1].replace(',', '')) # 去除逗號
-                                    results[name] = nav
-                                except: pass
-                                break
-            return results
+        nav_by_id = universe.set_index("基金統編")["淨值"].to_dict()
 
-        except Exception as e:
-            print(f"Scraper Error: {e}") # 僅在後台印出錯誤以便除錯
-            return None
+        results = {}
+        for name, fund_id in targets.items():
+            fid = _normalize_id(fund_id)
+            if fid in nav_by_id:
+                results[name] = float(nav_by_id[fid])
+        return results or None
