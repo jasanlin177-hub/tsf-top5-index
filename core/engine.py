@@ -51,6 +51,12 @@ class IndexEngine:
         with open(INDEX_CONFIG_FILE, 'r', encoding='utf-8') as f:
             config = json.load(f)
 
+        # 從 config 動態組出要抓的標的（換股後自動接上新成分股）；
+        # 舊 config 無「統編」欄位時，fetch_data 會退回 config.py 預設。
+        targets = {name: data["統編"]
+                   for name, data in config["constituents"].items()
+                   if "統編" in data} or None
+
         # 檢查歷史檔 (簡單快取)
         if os.path.exists(HISTORY_FILE):
             df_hist = pd.read_csv(HISTORY_FILE)
@@ -58,9 +64,9 @@ class IndexEngine:
                 # 若已存在，還是算一次以取得成分股明細 (可優化，但目前保留以確保資料一致)
                 pass 
 
-        current_navs = self.scraper.fetch_data(target_date)
+        current_navs = self.scraper.fetch_data(target_date, targets=targets)
         if not current_navs:
-            return None, "No Data" 
+            return None, "No Data"
 
         current_market_cap = 0.0
         details = []
