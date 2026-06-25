@@ -160,6 +160,82 @@ def propose(review_date_str):
 
 
 # ─────────────────────────────────────────────
+# Markdown 建議書（PR 內文用）
+# ─────────────────────────────────────────────
+
+def _current_market_value(old_config, nav_by_id):
+    """當前總市值 V（舊 units × 當日淨值）。缺值丟 KeyError。"""
+    return sum(d["units"] * nav_by_id[_normalize_id(d["統編"])]
+               for d in old_config["constituents"].values())
+
+
+def render_markdown(proposal):
+    """把建議渲染成 Markdown（GitHub PR 內文）。"""
+    scores = proposal["scores"]
+    incumbent_ids = proposal["incumbent_ids"]
+    selected = proposal["selected"]
+    review_ym = proposal["review_ym"]
+    new_period = next_period_label(review_ym)
+    rd = proposal["review_date"]
+    nav_by_id = proposal["universe"].set_index("基金統編")["淨值"].to_dict()
+
+    L = []
+    L.append(f"## 🐯 TSF-Top5 半年再平衡建議 — {new_period}\n")
+    L.append(f"**審核日**：{rd[:4]}/{rd[4:6]}/{rd[6:]}　|　"
+             f"**合格母體**：{len(scores)} 檔　|　"
+             f"**緩衝門檻 0.6σ(Top20)**：{proposal['threshold']:.2f}\n")
+
+    L.append("### 換股判定")
+    for c in proposal["changes"]:
+        if c["action"] == "全員衛冕":
+            L.append(f"- ✅ **全員衛冕**：無挑戰者跨過門檻 {c['threshold']}，5 檔續抱（僅還原權重）")
+        elif c["action"] == "換股":
+            L.append(f"- 🔄 換出 **{c['out_name']}** ({c['out_score']}) → "
+                     f"換入 **{c['in_name']}** ({c['in_score']})　"
+                     f"領先 {c['gap']} > 門檻 {c['threshold']}")
+        elif c["action"].startswith("強制補位"):
+            L.append(f"- ⛑️ **{c['action']}**：補入 {c['in_name']} ({c['in_score']})")
+    L.append("")
+
+    L.append("### 現任 5 檔現況")
+    L.append("| 排名 | 基金 | 分數 | 結果 |")
+    L.append("|---:|---|---:|:--:|")
+    for fid in incumbent_ids:
+        if fid in scores.index:
+            rank = scores.index.get_loc(fid) + 1
+            kept = "✅ 續抱" if fid in selected else "❌ 換出"
+            L.append(f"| #{rank} | {scores.loc[fid,'基金名稱']} | "
+                     f"{scores.loc[fid,'score']:.2f} | {kept} |")
+        else:
+            L.append(f"| — | （{fid}）已不在合格母體 | — | ❌ 出局 |")
+    L.append("")
+
+    L.append(f"### 下期成分股（{new_period}・等權重 20%）")
+    L.append("| # | 基金 | 分數 | |")
+    L.append("|---:|---|---:|:--:|")
+    for i, fid in enumerate(selected, 1):
+        tag = "續抱" if fid in incumbent_ids else "🆕 新進"
+        L.append(f"| {i} | {scores.loc[fid,'基金名稱']} | "
+                 f"{scores.loc[fid,'score']:.2f} | {tag} |")
+    L.append("")
+
+    try:
+        V = _current_market_value(proposal["config"], nav_by_id)
+        L.append("### 指數接軌")
+        L.append(f"- 當前總市值 V = **{V:,.0f}**，每檔還原 20% = V/5 = {V/5:,.0f}")
+        L.append(f"- `base_market_cap` 不變 → **指數不跳空**")
+        L.append("")
+    except KeyError:
+        pass
+
+    L.append("---")
+    L.append("✅ **核准方式：Merge 此 PR 即生效**（線上指數於 Streamlit 重新部署後反映）；"
+             "若不換，直接 **Close** 此 PR。")
+    L.append("🤖 由 `.github/workflows/rebalance.yml` 自動產生")
+    return "\n".join(L)
+
+
+# ─────────────────────────────────────────────
 # 生效（寫入）
 # ─────────────────────────────────────────────
 
@@ -227,6 +303,13 @@ def apply(proposal):
                                 for fid in selected]},
                   f, ensure_ascii=False, indent=2)
 
+    # 3b. 產出 Markdown 建議書（PR 內文用；同時寫固定檔名供 workflow 引用）
+    md = render_markdown(proposal)
+    for path in (os.path.join(REBALANCE_ARCHIVE_DIR, f"proposal_{review_ym}.md"),
+                 os.path.join(REBALANCE_ARCHIVE_DIR, "latest_proposal.md")):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(md)
+
     # 4. 寫新 config（生效）
     with open(INDEX_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(new_config, f, ensure_ascii=False, indent=4)
@@ -254,10 +337,8 @@ def apply(proposal):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     do_apply = "--apply" in sys.argv
-    if not args:
-        print("用法：python -m core.rebalance YYYYMMDD [--apply]")
-        return
-    review_date = args[0]
+    # 日期：給了就用，沒給用今天（排程當天執行）
+    review_date = args[0] if args else datetime.now().strftime("%Y%m%d")
     proposal = propose(review_date)
     if do_apply:
         apply(proposal)
