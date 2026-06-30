@@ -562,7 +562,9 @@ else:
 # ==========================================
 # 8. 成分基金表格
 # ==========================================
-section_header("🛡️", "最新成分基金權重 (2026 H1)")
+_period = engine.get_period()  # 從 config 動態讀生效期別，換股後自動更新
+_period_label = f" ({_period[:4]} {_period[4:]})" if _period else ""
+section_header("🛡️", f"最新成分基金權重{_period_label}")
 
 today_str = datetime.now().strftime("%Y%m%d")
 _, components_data = engine.calculate_index(today_str)

@@ -173,3 +173,11 @@ class IndexEngine:
         if os.path.exists(HISTORY_FILE):
             return pd.read_csv(HISTORY_FILE).sort_values('date')
         return pd.DataFrame()
+
+    def get_period(self):
+        """回傳目前生效期別（如 '2026H2'）；無則回空字串。"""
+        try:
+            with open(INDEX_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f).get('period', '')
+        except Exception:
+            return ''
