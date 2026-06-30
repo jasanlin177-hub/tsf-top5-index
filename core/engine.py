@@ -3,7 +3,7 @@ import os
 import time
 import pandas as pd
 from datetime import datetime, timedelta
-from .config import INDEX_CONFIG_FILE, HISTORY_FILE
+from .config import INDEX_CONFIG_FILE, HISTORY_FILE, REBALANCE_ARCHIVE_DIR
 from .scraper import SitcaScraper
 
 class IndexEngine:
@@ -181,3 +181,12 @@ class IndexEngine:
                 return json.load(f).get('period', '')
         except Exception:
             return ''
+
+    def get_period_summary(self):
+        """讀『上期成分回顧』摘要（換股時產生）；無則回 None。"""
+        path = os.path.join(REBALANCE_ARCHIVE_DIR, 'latest_period_summary.json')
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return None
