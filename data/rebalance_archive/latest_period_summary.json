@@ -1,0 +1,43 @@
+{
+  "period": "2026H1",
+  "start_date": "20260102",
+  "end_date": "20260630",
+  "index_return_pct": 106.4,
+  "constituents": [
+    {
+      "name": "統一奔騰",
+      "統編": "73990253",
+      "return_pct": 91.69,
+      "status": "out",
+      "replaced_by": "街口台灣"
+    },
+    {
+      "name": "安聯台灣科技",
+      "統編": "18480065",
+      "return_pct": 112.62,
+      "status": "kept",
+      "replaced_by": null
+    },
+    {
+      "name": "路博邁台灣5G",
+      "統編": "42532205",
+      "return_pct": 115.51,
+      "status": "kept",
+      "replaced_by": null
+    },
+    {
+      "name": "野村鴻運",
+      "統編": "00968493",
+      "return_pct": 104.3,
+      "status": "kept",
+      "replaced_by": null
+    },
+    {
+      "name": "野村台灣運籌",
+      "統編": "00988316",
+      "return_pct": 107.9,
+      "status": "kept",
+      "replaced_by": null
+    }
+  ]
+}

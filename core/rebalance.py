@@ -235,6 +235,47 @@ def render_markdown(proposal):
     return "\n".join(L)
 
 
+def build_period_summary(old_config, nav_by_id, index_value, selected_ids, changes):
+    """
+    產生「剛結束那一期」的績效摘要（給網站『上期成分回顧』用）。
+
+    old_config   ← 結束期的 config（含各檔 base_nav＝該期起始淨值）
+    nav_by_id    ← 期末（審核日）淨值 {統編: nav}
+    index_value  ← 期末指數點位（= V/base_market_cap×100）
+    selected_ids ← 下期入選統編（判斷續抱/換出）
+    changes      ← 換股紀錄（找換出者的接替者）
+    """
+    sel = set(_normalize_id(f) for f in selected_ids)
+
+    def _replaced_by(fid):
+        for c in changes:
+            if c.get("action") == "換股" and _normalize_id(c.get("out", "")) == fid:
+                return short_name(c.get("in_name", ""))
+        return None
+
+    funds = []
+    for name, d in old_config["constituents"].items():
+        fid = _normalize_id(d["統編"])
+        nav_end = nav_by_id.get(fid)
+        ret = round((nav_end / d["base_nav"] - 1) * 100, 2) if nav_end else None
+        kept = fid in sel
+        funds.append({
+            "name": name,
+            "統編": fid,
+            "return_pct": ret,
+            "status": "kept" if kept else "out",
+            "replaced_by": None if kept else _replaced_by(fid),
+        })
+
+    return {
+        "period": old_config.get("period", ""),
+        "start_date": old_config.get("base_date", ""),
+        "end_date": None,  # 由呼叫端填審核日
+        "index_return_pct": round(index_value - 100, 2),
+        "constituents": funds,
+    }
+
+
 # ─────────────────────────────────────────────
 # 生效（寫入）
 # ─────────────────────────────────────────────
@@ -309,6 +350,16 @@ def apply(proposal):
                  os.path.join(REBALANCE_ARCHIVE_DIR, "latest_proposal.md")):
         with open(path, "w", encoding="utf-8") as f:
             f.write(md)
+
+    # 3c. 產出「上期成分回顧」摘要（網站用；舊期＝剛結束那期）
+    summary = build_period_summary(old_config, nav_by_id, V / base_market_cap * 100,
+                                   selected, proposal["changes"])
+    summary["end_date"] = review_date
+    old_period = old_config.get("period", "unknown")
+    for path in (os.path.join(REBALANCE_ARCHIVE_DIR, f"period_summary_{old_period}.json"),
+                 os.path.join(REBALANCE_ARCHIVE_DIR, "latest_period_summary.json")):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
 
     # 4. 寫新 config（生效）
     with open(INDEX_CONFIG_FILE, "w", encoding="utf-8") as f:

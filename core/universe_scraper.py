@@ -107,7 +107,7 @@ def fetch_universe(date_str):
           （已濾 AA1+TWD、已同統編去重）；查無資料回傳 None。
     """
     session, engine = _make_session()
-    print(f"🔐 使用 {engine} 查詢 IN2106 全市場 {date_str}")
+    print(f"[抓取] 使用 {engine} 查詢 IN2106 全市場 {date_str}")
 
     # 抓頁面（帶 retry：雲端 IP 偶發被擋/逾時時重試）
     soup2 = None
@@ -141,7 +141,7 @@ def fetch_universe(date_str):
     # 3. 定位資料表
     table, trs, n_data = _find_data_table(soup2)
     if table is None or n_data == 0:
-        print("  ✗ 找不到資料表（可能假日/淨值未發布）")
+        print("  [無] 找不到資料表（可能假日/淨值未發布）")
         return None
 
     # 4. 解析資料列（固定 10 欄）
@@ -173,7 +173,7 @@ def fetch_universe(date_str):
         })
 
     if not rows:
-        print("  ✗ 解析到 0 筆")
+        print("  [無] 解析到 0 筆")
         return None
 
     df = pd.DataFrame(rows)
@@ -191,7 +191,7 @@ def fetch_universe(date_str):
     df = df.sort_values(["基金統編", "_prio"]).drop_duplicates("基金統編", keep="first")
     df = df.drop(columns="_prio").reset_index(drop=True)
 
-    print(f"  ✓ 全市場 {total} 筆 → 母體(AA1/TWD/去重) {len(df)} 檔")
+    print(f"  [OK] 全市場 {total} 筆 → 母體(AA1/TWD/去重) {len(df)} 檔")
     return df
 
 

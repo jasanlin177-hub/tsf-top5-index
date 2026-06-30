@@ -628,6 +628,51 @@ else:
         </div>""", unsafe_allow_html=True)
 
 # ==========================================
+# 8b. 上期成分回顧（換股後保留參考）
+# ==========================================
+_summary = engine.get_period_summary()
+if _summary and _summary.get("constituents"):
+    _sp = _summary.get("period", "")
+    _sp_label = f"{_sp[:4]} {_sp[4:]}" if _sp else ""
+    st.markdown('<div style="margin-top:28px"></div>', unsafe_allow_html=True)
+    section_header("📋", f"上期成分回顧 ({_sp_label})")
+
+    _idx_ret = _summary.get("index_return_pct")
+    if _idx_ret is not None:
+        _ic = "#FF4B4B" if _idx_ret >= 0 else "#00C853"
+        _sd, _ed = _summary.get("start_date", ""), _summary.get("end_date", "")
+        _rng = f"{_sd[:4]}/{_sd[4:6]}/{_sd[6:]} – {_ed[:4]}/{_ed[4:6]}/{_ed[6:]}" if _sd and _ed else ""
+        st.markdown(
+            f'<div style="padding:6px 4px 14px;color:#8899BB;font-size:14px">'
+            f'{_rng}　指數報酬 '
+            f'<span style="color:{_ic};font-weight:700">{"+"if _idx_ret>=0 else ""}{_idx_ret:.2f}%</span>'
+            f'</div>', unsafe_allow_html=True)
+
+    for i, c in enumerate(_summary["constituents"]):
+        color = FUND_COLORS[i % len(FUND_COLORS)]
+        ret = c.get("return_pct")
+        if ret is None:
+            ret_html = '<span style="color:#8899BB">--</span>'
+        else:
+            rc = "#FF4B4B" if ret >= 0 else "#00C853"
+            ret_html = f'<span style="color:{rc};font-weight:600">{"+"if ret>=0 else ""}{ret:.2f}%</span>'
+        if c.get("status") == "kept":
+            tag = '<span style="color:#00C853">✅ 續抱</span>'
+        else:
+            rep = c.get("replaced_by")
+            tag = f'<span style="color:#FF4B4B">❌ 換出{f" → {rep}" if rep else ""}</span>'
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;'
+            f'opacity:0.9;border-bottom:1px solid rgba(255,255,255,0.06)">'
+            f'<div style="width:24px;height:24px;border-radius:50%;background:{color};color:#fff;'
+            f'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">{i+1}</div>'
+            f'<div style="flex:1;color:#CFD6E4">{c.get("name","")}</div>'
+            f'<div style="width:90px;text-align:right">{ret_html}</div>'
+            f'<div style="width:140px;text-align:right;font-size:13px">{tag}</div>'
+            f'</div>', unsafe_allow_html=True)
+    st.caption("半年績效＝該期起始至期末的基金淨值報酬；換股依 Tiger Score 532 長期評分，非短期漲幅。")
+
+# ==========================================
 # 9. 簡報下載
 # ==========================================
 st.markdown('<div class="rainbow-hr" style="margin-top:32px"></div>', unsafe_allow_html=True)
