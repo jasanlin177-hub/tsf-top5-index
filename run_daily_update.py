@@ -24,5 +24,12 @@ def main():
     else:
         print(f"⚠️ 今日無資料或計算失敗: {details}")
 
+    # 更新基準指數對比資料（0050／大盤 TRI）；失敗不影響指數更新
+    try:
+        from core.benchmark import update_benchmark_history
+        update_benchmark_history()
+    except Exception as e:
+        print(f"⚠️ benchmark 更新失敗（略過，不影響指數）: {e}")
+
 if __name__ == "__main__":
     main()

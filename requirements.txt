@@ -4,3 +4,4 @@ plotly
 requests
 beautifulsoup4
 curl_cffi>=0.7.0
+yfinance>=0.2.40
