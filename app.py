@@ -6,6 +6,7 @@ import os
 import base64
 from datetime import datetime
 from core.engine import IndexEngine
+from core.benchmark import load_benchmark
 
 # ==========================================
 # 1. 頁面基礎設定
@@ -407,8 +408,22 @@ def delta_badge(val: float, suffix: str = "", show_sign: bool = True) -> str:
     sign   = ("+" if val >= 0 else "") if show_sign else ""
     return f'<span class="metric-badge badge-{cls}">{symbol} {abs(val):.2f}{suffix}</span>'
 
-def plot_chart(df: pd.DataFrame) -> go.Figure:
+def plot_chart(df: pd.DataFrame, bench: pd.DataFrame = None) -> go.Figure:
     fig = go.Figure()
+    # 基準線（0050／大盤）先畫，讓 TSF 疊在最上層
+    if bench is not None and not bench.empty:
+        b = bench.copy()
+        b['Date'] = pd.to_datetime(b['date'].astype(str), format='%Y%m%d')
+        for col, name, color in (('etf0050', '0050 (含息)', '#4A90D9'),
+                                 ('taiex', '大盤報酬指數', '#8899BB')):
+            s = pd.to_numeric(b[col], errors='coerce')
+            base = s.dropna().iloc[0] if s.notna().any() else None
+            if base:
+                fig.add_trace(go.Scatter(
+                    x=b['Date'], y=s / base * 100, mode='lines', name=name,
+                    line=dict(color=color, width=1.6),
+                    hovertemplate='<b>%{x|%Y-%m-%d}</b><br>' + name + ': %{y:.2f}<extra></extra>'
+                ))
     fig.add_trace(go.Scatter(
         x=df['Date'], y=df['Value'],
         mode='lines',
@@ -435,7 +450,9 @@ def plot_chart(df: pd.DataFrame) -> go.Figure:
         margin=dict(l=8, r=8, t=16, b=8),
         xaxis=dict(gridcolor='#1A2440', color='#6677AA', showline=False),
         yaxis=dict(gridcolor='#1A2440', color='#6677AA', showline=False),
-        showlegend=False,
+        showlegend=(bench is not None and not bench.empty),
+        legend=dict(orientation='h', yanchor='bottom', y=1.0, xanchor='left', x=0,
+                    font=dict(color='#8899BB', size=12), bgcolor='rgba(0,0,0,0)'),
         hovermode='x unified',
         hoverlabel=dict(bgcolor='#141827', font_size=13)
     )
@@ -554,8 +571,33 @@ st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
 # ==========================================
 section_header("📈", "指數走勢")
 
+_bench = load_benchmark()
+
 if not df_hist.empty:
-    st.plotly_chart(plot_chart(df_hist), use_container_width=True)
+    st.plotly_chart(plot_chart(df_hist, _bench), use_container_width=True)
+
+    # 對比數字（自基期起報酬：TSF vs 0050 vs 大盤）
+    if _bench is not None and not _bench.empty:
+        _tsf_ret = df_hist.iloc[-1]['Value'] - 100.0
+        def _bret(col):
+            s = pd.to_numeric(_bench[col], errors='coerce').dropna()
+            return (s.iloc[-1] / s.iloc[0] - 1) * 100 if len(s) >= 2 else None
+        _e, _t = _bret('etf0050'), _bret('taiex')
+        def _pill(label, val, color):
+            if val is None:
+                return ''
+            return (f'<span style="display:inline-block;margin-right:10px;padding:5px 12px;'
+                    f'border-radius:8px;background:rgba(255,255,255,0.04);font-size:14px">'
+                    f'{label} <b style="color:{color}">{"+"if val>=0 else ""}{val:.2f}%</b></span>')
+        st.markdown(
+            '<div style="padding:2px 2px 6px;color:#8899BB;font-size:13px">自基期累積報酬對比</div>'
+            + _pill('TSF-Top5', _tsf_ret, GOLD)
+            + _pill('0050', _e, '#4A90D9')
+            + _pill('大盤報酬', _t, '#8899BB'),
+            unsafe_allow_html=True)
+        if _e is not None and _t is not None:
+            _lead = _tsf_ret - max(_e, _t)
+            st.caption(f"TSF-Top5 領先大盤／0050 約 {_lead:+.1f} 個百分點（同為含息報酬口徑）。")
 else:
     st.info("尚無歷史資料，請先至管理後台執行初始化。")
 
