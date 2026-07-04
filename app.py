@@ -414,8 +414,8 @@ def plot_chart(df: pd.DataFrame, bench: pd.DataFrame = None) -> go.Figure:
     if bench is not None and not bench.empty:
         b = bench.copy()
         b['Date'] = pd.to_datetime(b['date'].astype(str), format='%Y%m%d')
-        for col, name, color in (('etf0050', '0050 (含息)', '#4A90D9'),
-                                 ('taiex', '大盤報酬指數', '#8899BB')):
+        for col, name, color in (('etf0050', '0050 (含息)', '#5BA3E8'),
+                                 ('taiex', '大盤報酬指數', '#AAB4CC')):
             s = pd.to_numeric(b[col], errors='coerce')
             base = s.dropna().iloc[0] if s.notna().any() else None
             if base:
@@ -586,14 +586,18 @@ if not df_hist.empty:
         def _pill(label, val, color):
             if val is None:
                 return ''
-            return (f'<span style="display:inline-block;margin-right:10px;padding:5px 12px;'
-                    f'border-radius:8px;background:rgba(255,255,255,0.04);font-size:14px">'
-                    f'{label} <b style="color:{color}">{"+"if val>=0 else ""}{val:.2f}%</b></span>')
+            return (f'<span style="display:inline-block;margin:4px 10px 4px 0;padding:8px 14px;'
+                    f'border-radius:10px;background:rgba(255,255,255,0.08);'
+                    f'border:1px solid rgba(255,255,255,0.10);font-size:15px;white-space:nowrap">'
+                    f'<span style="color:{color};font-size:12px">&#9679;</span> '
+                    f'<span style="color:#EAEEF6;font-weight:600">{label}</span> '
+                    f'<b style="color:{color};margin-left:2px">{"+"if val>=0 else ""}{val:.2f}%</b>'
+                    f'</span>')
         st.markdown(
-            '<div style="padding:2px 2px 6px;color:#8899BB;font-size:13px">自基期累積報酬對比</div>'
+            '<div style="padding:4px 2px 8px;color:#B4BECF;font-size:14px;font-weight:600">自基期累積報酬對比</div>'
             + _pill('TSF-Top5', _tsf_ret, GOLD)
-            + _pill('0050', _e, '#4A90D9')
-            + _pill('大盤報酬', _t, '#8899BB'),
+            + _pill('0050', _e, '#5BA3E8')
+            + _pill('大盤報酬', _t, '#AAB4CC'),
             unsafe_allow_html=True)
         if _e is not None and _t is not None:
             _lead = _tsf_ret - max(_e, _t)
